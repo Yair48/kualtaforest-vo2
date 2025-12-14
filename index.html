@@ -1,362 +1,1584 @@
-<!DOCTYPE html>
+import os, shutil, zipfile, math
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
+from PIL import Image, ImageDraw
+
+base = "/mnt/data/co2kualta_premium"
+if os.path.exists(base):
+    shutil.rmtree(base)
+os.makedirs(base, exist_ok=True)
+os.makedirs(os.path.join(base,"css"), exist_ok=True)
+os.makedirs(os.path.join(base,"js"), exist_ok=True)
+os.makedirs(os.path.join(base,"images"), exist_ok=True)
+os.makedirs(os.path.join(base,"assets"), exist_ok=True)
+
+# Copy provided images
+src_map = {
+    "/mnt/data/hero-bosque.jpg":"hero-bosque.jpg",
+    "/mnt/data/arbol-persona.jpg":"arbol-persona.jpg",
+    "/mnt/data/arbol-ceiba.jpg":"arbol-ceiba.jpg",
+    "/mnt/data/logo-co2kualta.png":"logo-co2kualta.png",
+}
+for src, dst in src_map.items():
+    if os.path.exists(src):
+        shutil.copy(src, os.path.join(base,"images",dst))
+
+# Create OG image placeholder
+def make_og(path):
+    img = Image.new("RGB",(1200,630),(7,26,20))
+    d = ImageDraw.Draw(img)
+    for i in range(0,630,6):
+        col = (7,26+int(10*math.sin(i/50)),20+int(10*math.cos(i/55)))
+        d.rectangle([0,i,1200,i+6], fill=col)
+    d.rounded_rectangle([60,60,1140,570], radius=40, outline=(128,208,104), width=4)
+    d.text((90,95),"CO₂ KUALTA", fill=(232,255,245))
+    d.text((90,150),"Soluciones reales para el planeta", fill=(185,217,204))
+    d.text((90,190),"Bonos de carbono · Huella & compensación · Donar un árbol", fill=(185,217,204))
+    img.save(path, quality=92)
+make_og(os.path.join(base,"images","og-co2kualta.jpg"))
+
+# Create simple gallery placeholders (3)
+def gallery_placeholder(path, title):
+    img = Image.new("RGB",(1600,1000),(9,32,23))
+    d = ImageDraw.Draw(img)
+    for i in range(0,1000,8):
+        col = (9,32+int(18*math.sin(i/60)),23+int(18*math.cos(i/65)))
+        d.rectangle([0,i,1600,i+8], fill=col)
+    d.rounded_rectangle([70,70,1530,930], radius=42, outline=(184,255,223), width=4)
+    d.text((110,120),"CO₂ KUALTA — Galería", fill=(232,255,245))
+    d.text((110,170),title, fill=(185,217,204))
+    img.save(path, quality=92)
+for i,t in enumerate(["Trabajo de campo y diagnóstico","Restauración y mantenimiento","Conservación y biodiversidad"], start=1):
+    gallery_placeholder(os.path.join(base,"images",f"galeria-{i}.jpg"), t)
+
+# Lead magnet PDF
+pdf_path = os.path.join(base,"assets","checklist-carbono.pdf")
+c = canvas.Canvas(pdf_path, pagesize=letter)
+w,h = letter
+c.setTitle("CO2 KUALTA - Checklist Predio")
+c.setFont("Helvetica-Bold",18)
+c.drawString(72,h-72,"CO₂ KUALTA")
+c.setFont("Helvetica",12)
+c.drawString(72,h-95,"Checklist gratuito: ¿Tu predio puede generar bonos de carbono?")
+c.setFont("Helvetica",11)
+lines = [
+"1. Ubicación exacta (vereda/municipio) y coordenadas (lat/long).",
+"2. Área del predio (ha) y cobertura actual (bosque, potreros, cultivos, etc.).",
+"3. Evidencia: fotos o video del sitio (idealmente georreferenciado).",
+"4. Historia de uso del suelo (últimos 5–10 años).",
+"5. Documento del predio / soporte de tenencia (si aplica).",
+"6. Riesgos: incendios, tala, presión de cambio de uso, conflictos.",
+"",
+"Siguiente paso:",
+"Envíanos esta información por WhatsApp y te damos una pre-evaluación.",
+"",
+"WhatsApp (SOSING): +57 311 660 8217",
+]
+y = h-135
+for line in lines:
+    c.drawString(72,y,line)
+    y-=18
+c.showPage(); c.save()
+
+styles = r"""/* CO₂ KUALTA — Premium 2025–2026
+   Fast, lightweight, responsive. */
+:root{
+  --bg:#06130f;
+  --bg2:#071a14;
+  --card:rgba(255,255,255,.06);
+  --card2:rgba(255,255,255,.04);
+  --line:rgba(255,255,255,.12);
+  --text:#e8fff5;
+  --muted:#b9d9cc;
+  --brand:#1a7a52;
+  --brand2:#80d068;
+  --accent:#b8ffdf;
+  --shadow: 0 18px 60px rgba(0,0,0,.35);
+  --radius: 18px;
+  --radius2: 26px;
+  --max: 1180px;
+  --focus: 0 0 0 4px rgba(128,208,104,.18);
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;
+  font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  color:var(--text);
+  background:
+    radial-gradient(1200px 600px at 20% -10%, rgba(128,208,104,.16), transparent 60%),
+    radial-gradient(1200px 600px at 90% 0%, rgba(26,122,82,.22), transparent 60%),
+    linear-gradient(180deg, var(--bg), #050f0c 55%, #030a08 100%);
+  line-height:1.6;
+  overflow-x:hidden;
+}
+img{max-width:100%; display:block}
+a{color:inherit; text-decoration:none}
+.container{width:min(var(--max), calc(100% - 44px)); margin:0 auto}
+.skip{
+  position:absolute; left:-999px; top:10px;
+  background:#fff; color:#000; padding:10px 14px; border-radius:12px;
+}
+.skip:focus{left:10px; z-index:9999}
+
+.topbar{position:fixed; top:0; left:0; right:0; height:3px; z-index:99; background:transparent}
+.topbar__fill{height:100%; width:0; background:linear-gradient(90deg, var(--brand2), var(--brand)); opacity:.95}
+
+.nav{
+  position:sticky; top:0; z-index:50;
+  background:rgba(4,12,9,.58);
+  backdrop-filter: blur(14px);
+  border-bottom:1px solid rgba(255,255,255,.08);
+}
+.nav__inner{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:14px 0;
+}
+.brand{display:flex; gap:10px; align-items:center}
+.brand__logo{width:34px; height:34px; border-radius:10px; box-shadow: 0 8px 20px rgba(0,0,0,.25)}
+.brand__name{
+  font-family: Manrope, Inter, system-ui;
+  font-weight:800;
+  letter-spacing:.2px;
+}
+.nav__links{display:flex; align-items:center; gap:18px}
+.nav__links a{opacity:.9}
+.nav__links a:hover{opacity:1}
+.nav__links a.is-active{opacity:1; color:var(--accent)}
+.nav__right{display:flex; align-items:center; gap:10px}
+.lang{
+  display:inline-flex; align-items:center; gap:8px;
+  padding:10px 12px;
+  border-radius:14px;
+  border:1px solid rgba(255,255,255,.12);
+  background:rgba(255,255,255,.04);
+  color:var(--text);
+  cursor:pointer;
+}
+.lang:focus{outline:none; box-shadow: var(--focus)}
+.lang small{color:var(--muted); font-weight:650}
+.btn{
+  display:inline-flex; align-items:center; justify-content:center;
+  gap:10px;
+  padding:12px 16px;
+  border-radius:16px;
+  background:linear-gradient(135deg, rgba(128,208,104,1), rgba(26,122,82,1));
+  color:#052016;
+  font-weight:800;
+  border:1px solid rgba(255,255,255,.10);
+  box-shadow: 0 12px 30px rgba(0,0,0,.25);
+  transition: transform .18s ease, filter .18s ease;
+  cursor:pointer;
+}
+.btn:hover{transform: translateY(-1px); filter:saturate(1.05)}
+.btn:active{transform: translateY(0px) scale(.99)}
+.btn--ghost{
+  background: rgba(255,255,255,.06);
+  color: var(--text);
+  border:1px solid rgba(255,255,255,.12);
+  box-shadow:none;
+}
+.btn--sm{padding:10px 14px; border-radius:14px; font-weight:750}
+.btn--block{width:100%}
+.nav__toggle{
+  display:none;
+  width:44px; height:44px;
+  border-radius:14px;
+  border:1px solid rgba(255,255,255,.12);
+  background:rgba(255,255,255,.04);
+  color:var(--text);
+  cursor:pointer;
+}
+.nav__toggle span{display:block; width:18px; height:2px; background:var(--text); margin:4px auto; border-radius:2px; opacity:.9}
+.nav__mobile{
+  display:none;
+  padding:10px 20px 18px;
+  border-top:1px solid rgba(255,255,255,.08);
+}
+.nav__mobile a{display:block; padding:10px 0; opacity:.92}
+.badge{
+  display:inline-flex; align-items:center; gap:10px;
+  padding:8px 12px;
+  border-radius:999px;
+  background:rgba(255,255,255,.06);
+  border:1px solid rgba(255,255,255,.10);
+  color:var(--muted);
+  font-size:13px;
+}
+.dot{width:8px; height:8px; border-radius:50%; background:var(--brand2); box-shadow: 0 0 0 6px rgba(128,208,104,.18)}
+h1{
+  margin:14px 0 12px;
+  font-family: Manrope, Inter, system-ui;
+  font-size: clamp(36px, 4.6vw, 62px);
+  line-height:1.03;
+  letter-spacing:-.9px;
+}
+h2{
+  margin:0 0 10px;
+  font-family: Manrope, Inter;
+  letter-spacing:-.35px;
+  font-size: clamp(24px, 2.6vw, 34px);
+}
+h3{margin:0 0 8px; font-family:Manrope}
+p{margin:0 0 12px}
+.lead{font-size: clamp(16px, 1.6vw, 19px); color: rgba(232,255,245,.92); margin:0 0 18px}
+.muted{color:var(--muted)}
+.section{padding:68px 0}
+.section--alt{
+  background:
+    radial-gradient(900px 420px at 15% 10%, rgba(26,122,82,.18), transparent 55%),
+    radial-gradient(900px 420px at 90% 0%, rgba(128,208,104,.10), transparent 60%),
+    linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.01));
+  border-top:1px solid rgba(255,255,255,.06);
+  border-bottom:1px solid rgba(255,255,255,.06);
+}
+.section__head{
+  display:flex; align-items:flex-end; justify-content:space-between; gap:20px;
+  margin-bottom:26px
+}
+.section__head p{max-width:560px}
+.hero{
+  position:relative;
+  padding:82px 0 46px;
+}
+.hero__grid{
+  display:grid; grid-template-columns: 1.08fr .92fr;
+  align-items:center; gap:34px;
+}
+.hero__visual{position:relative}
+.glass{
+  position:relative;
+  border-radius: var(--radius2);
+  overflow:hidden;
+  border:1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.03);
+  box-shadow: var(--shadow);
+}
+.glass__bg{
+  position:absolute; inset:-60px;
+  background:
+    radial-gradient(700px 420px at 30% 20%, rgba(128,208,104,.20), transparent 60%),
+    radial-gradient(700px 420px at 70% 40%, rgba(26,122,82,.28), transparent 60%);
+  filter: blur(2px);
+}
+.hero__img{
+  position:relative;
+  width:100%;
+  height: 460px;
+  object-fit:cover;
+  transform: scale(1.02);
+  opacity: .98;
+}
+.hero__overlay{
+  position:absolute; inset:0;
+  background: linear-gradient(180deg, rgba(3,10,8,.10), rgba(3,10,8,.55));
+}
+.hero__kpis{display:flex; gap:12px; flex-wrap:wrap; margin-top:18px}
+.kpi{
+  padding:12px 14px;
+  border-radius:16px;
+  border:1px solid rgba(255,255,255,.10);
+  background:rgba(255,255,255,.04);
+  min-width: 160px;
+}
+.kpi__t{font-weight:900; font-family:Manrope}
+.kpi__d{font-size:13px; color:var(--muted)}
+.metric{
+  position:absolute;
+  padding:12px 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(7,26,20,.65);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 18px 50px rgba(0,0,0,.35);
+}
+.metric__num{font-weight:900; font-family: Manrope}
+.metric__txt{font-size:13px; color:var(--muted)}
+.metric--a{right:14px; top:18px}
+.metric--b{left:18px; bottom:-14px}
+.hero__fade{
+  position:absolute; left:0; right:0; bottom:-2px; height:90px;
+  background: linear-gradient(180deg, transparent, rgba(3,10,8,1));
+  pointer-events:none;
+}
+.cards{
+  display:grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap:16px;
+}
+.card{
+  padding:18px 18px 16px;
+  border-radius: var(--radius);
+  border:1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.04);
+  box-shadow: 0 18px 40px rgba(0,0,0,.20);
+}
+.card--highlight{
+  background:
+    radial-gradient(700px 260px at 20% 0%, rgba(128,208,104,.18), transparent 60%),
+    linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+  border-color: rgba(128,208,104,.25);
+}
+.card__icon{font-size:22px}
+.list{margin:0; padding-left: 18px; color: rgba(232,255,245,.90)}
+.list li{margin:6px 0}
+.grid2{display:grid; grid-template-columns: 1.05fr .95fr; gap:18px; align-items:start}
+.panel{
+  padding:18px;
+  border-radius: var(--radius2);
+  border:1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.04);
+  box-shadow: var(--shadow);
+}
+.split{display:grid; grid-template-columns: 1fr 1fr; gap:16px}
+.iconrow{display:grid; grid-template-columns: 1fr 1fr 1fr; gap:12px}
+.iconbox{
+  padding:14px;
+  border-radius:16px;
+  border:1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.03);
+}
+.iconbox__t{font-weight:900; font-family:Manrope; display:flex; align-items:center; gap:10px}
+.iconbox__d{color:var(--muted); font-size:14px; margin-top:6px}
+.steps{display:grid; gap:10px; margin-top:10px}
+.step{
+  display:flex; gap:12px; align-items:flex-start;
+  padding:14px;
+  border-radius:16px;
+  border:1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.03);
+}
+.step__n{
+  width:30px; height:30px; border-radius:12px;
+  display:flex; align-items:center; justify-content:center;
+  background: rgba(128,208,104,.14);
+  border:1px solid rgba(128,208,104,.25);
+  color: var(--accent);
+  font-weight:900;
+  font-family:Manrope;
+}
+.step__t{font-weight:900; font-family:Manrope}
+.step__d{color:var(--muted); font-size:14px; margin-top:2px}
+
+.gallery{display:grid; grid-template-columns: 1.1fr .9fr; gap:12px}
+.shot{
+  margin:0;
+  border-radius: var(--radius2);
+  overflow:hidden;
+  border:1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.03);
+  box-shadow: var(--shadow);
+}
+.shot img{width:100%; height: 260px; object-fit:cover}
+.shot figcaption{padding:12px 14px; color:var(--muted); font-size:13px}
+.testis{display:grid; grid-template-columns: repeat(3, 1fr); gap:16px}
+.quote{
+  padding:18px;
+  border-radius: var(--radius);
+  border:1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.04);
+}
+.quote__t{font-weight:850; font-family:Manrope}
+.quote__p{color:rgba(232,255,245,.92)}
+.quote__s{margin-top:10px; color:var(--muted); font-size:13px}
+
+.faq{display:grid; gap:10px}
+.faq details{
+  padding:14px;
+  border-radius:16px;
+  border:1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.03);
+}
+.faq summary{cursor:pointer; font-weight:850; font-family:Manrope}
+.faq p{margin:10px 0 0; color:var(--muted)}
+
+.form{
+  padding:18px;
+  border-radius: var(--radius2);
+  border:1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.04);
+  box-shadow: var(--shadow);
+}
+label{display:block; font-size:13px; color:var(--muted); margin-bottom:10px}
+input, select, textarea{
+  width:100%;
+  margin-top:8px;
+  padding:12px 12px;
+  border-radius:14px;
+  border:1px solid rgba(255,255,255,.12);
+  background: rgba(0,0,0,.18);
+  color: var(--text);
+  outline:none;
+}
+input:focus, select:focus, textarea:focus{border-color: rgba(128,208,104,.45); box-shadow: var(--focus)}
+.row{display:grid; grid-template-columns:1fr 1fr; gap:12px}
+.row--end{display:flex; align-items:center; justify-content:flex-end; gap:10px; flex-wrap:wrap; margin-top:10px}
+
+.map{
+  border-radius: var(--radius2);
+  overflow:hidden;
+  border:1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.03);
+  box-shadow: var(--shadow);
+}
+.map iframe{width:100%; height:340px; border:0}
+
+.footer{
+  padding:34px 0 44px;
+  border-top:1px solid rgba(255,255,255,.06);
+}
+.footer__grid{display:grid; grid-template-columns: 1fr auto auto; gap:22px; align-items:start}
+.footer__brand{display:flex; gap:12px; align-items:center}
+.footer__brand img{width:40px; height:40px; border-radius:12px}
+.footer a{color:var(--muted)}
+.footer a:hover{color:var(--text)}
+.footer__small{margin-top:10px; color:var(--muted); font-size:13px}
+
+.wa{
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 60;
+  display:inline-flex; gap:10px; align-items:center; justify-content:center;
+  padding:12px 14px;
+  border-radius: 999px;
+  background: rgba(7,26,20,.72);
+  border:1px solid rgba(128,208,104,.28);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 18px 60px rgba(0,0,0,.45);
+  color: var(--text);
+}
+.wa:hover{border-color: rgba(128,208,104,.45)}
+.wa__dot{width:10px; height:10px; border-radius:50%; background:#25D366; box-shadow:0 0 0 6px rgba(37,211,102,.14)}
+
+.modal{position:fixed; inset:0; z-index:80; display:none}
+.modal.is-open{display:block}
+.modal__backdrop{position:absolute; inset:0; background: rgba(0,0,0,.55)}
+.modal__panel{
+  position:relative;
+  width:min(600px, calc(100% - 28px));
+  margin: 9vh auto 0;
+  padding:18px;
+  border-radius: var(--radius2);
+  border:1px solid rgba(255,255,255,.12);
+  background:
+    radial-gradient(900px 260px at 20% 0%, rgba(128,208,104,.18), transparent 60%),
+    rgba(7,26,20,.92);
+  backdrop-filter: blur(14px);
+  box-shadow: var(--shadow);
+}
+.modal__close{
+  position:absolute; top:10px; right:10px;
+  width:40px; height:40px;
+  border-radius:14px;
+  border:1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.06);
+  color:var(--text);
+  cursor:pointer;
+}
+.modal__badge{
+  display:inline-flex; padding:6px 10px; border-radius:999px;
+  background: rgba(128,208,104,.12); border:1px solid rgba(128,208,104,.22);
+  color: var(--accent); font-size:12px; margin-bottom:10px
+}
+.modal__actions{display:flex; gap:10px; flex-wrap:wrap; margin-top:12px}
+
+.reveal{opacity:0; transform: translateY(10px); filter: blur(2px)}
+.reveal.is-in{opacity:1; transform:none; filter:none; transition: opacity .7s ease, transform .7s ease, filter .7s ease}
+@media (prefers-reduced-motion: reduce){
+  .reveal{opacity:1; transform:none; filter:none}
+  .btn{transition:none}
+}
+
+/* Responsive */
+@media (max-width: 980px){
+  .hero__grid{grid-template-columns:1fr; gap:18px}
+  .hero__img{height: 360px}
+  .cards{grid-template-columns: 1fr}
+  .testis{grid-template-columns:1fr}
+  .grid2{grid-template-columns:1fr}
+  .split{grid-template-columns:1fr}
+  .iconrow{grid-template-columns:1fr}
+  .gallery{grid-template-columns:1fr}
+  .footer__grid{grid-template-columns:1fr}
+  .nav__links{display:none}
+  .nav__toggle{display:inline-flex; align-items:center; justify-content:center}
+  .nav__mobile{display:block}
+}
+"""
+
+main_js = r"""/* CO₂ KUALTA — main.js (fast + premium)
+   - Language toggle ES/EN (visible)
+   - Scroll reveal (IntersectionObserver)
+   - WhatsApp floating button + form submit
+   - Exit-intent popup (once per session)
+   - Scroll progress
+*/
+(function () {
+  const qs = (s, el=document) => el.querySelector(s);
+  const qsa = (s, el=document) => Array.from(el.querySelectorAll(s));
+
+  // ===== CONFIG =====
+  const CONFIG = {
+    whatsappNumber: "573116608217", // SOSING
+    wompiLink: "https://checkout.wompi.co/",
+    paypalLink: "https://www.paypal.com/paypalme/",
+    leadPdf: "./assets/checklist-carbono.pdf",
+    defaultLang: "es",
+  };
+
+  // ===== NAV (mobile) =====
+  const toggle = qs("#navToggle");
+  const mobile = qs("#navMobile");
+  if (toggle && mobile) {
+    toggle.addEventListener("click", () => {
+      const open = !mobile.hasAttribute("hidden");
+      if (open) { mobile.setAttribute("hidden",""); toggle.setAttribute("aria-expanded","false"); }
+      else { mobile.removeAttribute("hidden"); toggle.setAttribute("aria-expanded","true"); }
+    });
+    qsa("a", mobile).forEach(a => a.addEventListener("click", () => {
+      mobile.setAttribute("hidden",""); toggle.setAttribute("aria-expanded","false");
+    }));
+  }
+
+  // ===== Year =====
+  const year = qs("#year");
+  if (year) year.textContent = String(new Date().getFullYear());
+
+  // ===== Scroll progress =====
+  const bar = qs("#scrollProgress");
+  const onScroll = () => {
+    if (!bar) return;
+    const h = document.documentElement;
+    const scrollTop = h.scrollTop || document.body.scrollTop;
+    const scrollHeight = h.scrollHeight - h.clientHeight;
+    const p = scrollHeight > 0 ? (scrollTop / scrollHeight) : 0;
+    bar.style.width = (p * 100).toFixed(2) + "%";
+  };
+  window.addEventListener("scroll", onScroll, { passive: true });
+  onScroll();
+
+  // ===== Reveal animations =====
+  const reveals = qsa(".reveal");
+  if ("IntersectionObserver" in window) {
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach((e) => {
+        if (e.isIntersecting) {
+          e.target.classList.add("is-in");
+          io.unobserve(e.target);
+        }
+      });
+    }, { threshold: 0.12 });
+    reveals.forEach(el => io.observe(el));
+  } else {
+    reveals.forEach(el => el.classList.add("is-in"));
+  }
+
+  // ===== WhatsApp helper =====
+  function openWhatsApp(message) {
+    const url = `https://wa.me/${CONFIG.whatsappNumber}?text=${encodeURIComponent(message)}`;
+    window.open(url, "_blank", "noopener");
+  }
+  const waFloat = qs("#waFloat");
+  if (waFloat) {
+    waFloat.addEventListener("click", (e) => {
+      e.preventDefault();
+      openWhatsApp("Hola CO₂ KUALTA (SOSING), quiero información y una cotización.");
+    });
+    waFloat.setAttribute("href", `https://wa.me/${CONFIG.whatsappNumber}`);
+  }
+
+  // Lead form -> WhatsApp
+  const form = qs("#leadForm");
+  if (form) {
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const fd = new FormData(form);
+      const nombre = String(fd.get("nombre") || "").trim();
+      const servicio = String(fd.get("servicio") || "").trim();
+      const ciudad = String(fd.get("ciudad") || "").trim();
+      const telefono = String(fd.get("telefono") || "").trim();
+      const msg = String(fd.get("mensaje") || "").trim();
+
+      const message =
+`Hola CO₂ KUALTA (SOSING), soy ${nombre}.
+Servicio: ${servicio}
+Ciudad/Municipio: ${ciudad}
+Mi WhatsApp: ${telefono}
+${msg ? `Mensaje: ${msg}` : ""}
+
+Quedo atento(a).`;
+      openWhatsApp(message);
+    });
+  }
+
+  // Payment links patch
+  qsa("[data-wompi]").forEach(a => a.setAttribute("href", CONFIG.wompiLink));
+  qsa("[data-paypal]").forEach(a => a.setAttribute("href", CONFIG.paypalLink));
+
+  // ===== Lead magnet download =====
+  function downloadLead() {
+    const a = document.createElement("a");
+    a.href = CONFIG.leadPdf;
+    a.download = "CO2-KUALTA-checklist-predio.pdf";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }
+  qsa("[data-download-lead]").forEach(btn => btn.addEventListener("click", downloadLead));
+
+  // ===== Exit intent popup =====
+  const modal = qs("#exitModal");
+  const openModal = () => {
+    if (!modal) return;
+    modal.classList.add("is-open");
+    modal.setAttribute("aria-hidden", "false");
+  };
+  const closeModal = () => {
+    if (!modal) return;
+    modal.classList.remove("is-open");
+    modal.setAttribute("aria-hidden", "true");
+  };
+
+  if (modal) {
+    modal.addEventListener("click", (e) => {
+      const t = e.target;
+      if (t && t.dataset && t.dataset.close === "true") closeModal();
+    });
+    window.addEventListener("keydown", (e) => { if (e.key === "Escape") closeModal(); });
+  }
+
+  // Manual open
+  qsa("[data-open-popup]").forEach(a => a.addEventListener("click", (e) => { e.preventDefault(); openModal(); }));
+
+  // Show once per session (exit intent)
+  let exitShown = sessionStorage.getItem("kualta_exit_shown") === "1";
+  function onMouseOut(e) {
+    if (exitShown) return;
+    if (e.clientY <= 0) {
+      exitShown = true;
+      sessionStorage.setItem("kualta_exit_shown", "1");
+      openModal();
+      window.removeEventListener("mouseout", onMouseOut);
+    }
+  }
+  if (window.matchMedia("(hover:hover)").matches) window.addEventListener("mouseout", onMouseOut);
+
+  // ===== Language toggle ES/EN =====
+  const dict = window.__I18N__ || {};
+  const langBtn = qs("#langToggle");
+  function setLang(lang){
+    const active = (lang === "en") ? "en" : "es";
+    localStorage.setItem("kualta_lang", active);
+    document.documentElement.setAttribute("lang", active);
+
+    qsa("[data-i18n]").forEach(el=>{
+      const key = el.getAttribute("data-i18n");
+      const value = dict?.[key]?.[active];
+      if (typeof value === "string") el.textContent = value;
+    });
+    qsa("[data-i18n-html]").forEach(el=>{
+      const key = el.getAttribute("data-i18n-html");
+      const value = dict?.[key]?.[active];
+      if (typeof value === "string") el.innerHTML = value;
+    });
+    // Update button label
+    if (langBtn) langBtn.innerHTML = `<strong>${active.toUpperCase()}</strong> <small>ES/EN</small>`;
+  }
+  const saved = localStorage.getItem("kualta_lang") || CONFIG.defaultLang;
+  setLang(saved);
+
+  if (langBtn) {
+    langBtn.addEventListener("click", ()=>{
+      const current = document.documentElement.getAttribute("lang") || "es";
+      setLang(current === "es" ? "en" : "es");
+    });
+  }
+})();
+"""
+
+# Common i18n dictionary inserted into pages
+i18n_dict = {
+  "nav_services":{"es":"Servicios","en":"Services"},
+  "nav_process":{"es":"Proceso","en":"Process"},
+  "nav_cases":{"es":"Casos","en":"Cases"},
+  "nav_faq":{"es":"FAQ","en":"FAQ"},
+  "nav_contact":{"es":"Contacto","en":"Contact"},
+  "cta_quote":{"es":"Evaluar mi caso","en":"Evaluate my case"},
+  "cta_services":{"es":"Ver servicios","en":"View services"},
+  "hero_badge":{"es":"Carbono con trazabilidad · 2025–2026","en":"Traceable carbon · 2025–2026"},
+  "hero_h1":{"es":"Desde la raíz, estructuramos soluciones reales para el planeta.","en":"From the roots, we build real climate solutions."},
+  "hero_p":{"es":"Bonos de carbono para predios, huella y compensación de carbono para empresas, y donación de árboles con impacto verificable.","en":"Carbon credits for landowners, carbon footprint & compensation for companies, and tree donations with verifiable impact."},
+  "about_h2":{"es":"Más que carbono: territorio, datos y compromiso.","en":"More than carbon: land, data and commitment."},
+  "about_p":{"es":"CO₂ KUALTA conecta territorio, respaldo técnico y estrategia. Diseñamos rutas claras, medibles y verificables — sin promesas irreales.","en":"CO₂ KUALTA connects land, technical rigor and strategy. We design clear, measurable and verifiable paths — no unrealistic promises."},
+  "services_h2":{"es":"Servicios","en":"Services"},
+  "services_p":{"es":"Tres rutas, un mismo estándar: claridad, trazabilidad y acompañamiento.","en":"Three routes, one standard: clarity, traceability and guidance."},
+  "why_h2":{"es":"¿Por qué elegir CO₂ KUALTA?","en":"Why choose CO₂ KUALTA?"},
+  "testi_h2":{"es":"Testimonios","en":"Testimonials"},
+  "process_h2":{"es":"Proceso de trabajo","en":"Work process"},
+  "cases_h2":{"es":"Casos y galería","en":"Cases & gallery"},
+  "faq_h2":{"es":"Preguntas frecuentes","en":"Frequently asked questions"},
+  "contact_h2":{"es":"Hablemos","en":"Let’s talk"},
+  "contact_p":{"es":"Cuéntanos tu necesidad y te respondemos por WhatsApp con una ruta clara.","en":"Tell us what you need and we’ll reply on WhatsApp with a clear next step."},
+  "footer_priv":{"es":"Política de privacidad","en":"Privacy policy"},
+  "footer_legal":{"es":"Aviso legal","en":"Legal notice"},
+}
+
+def html_head(title, desc, canonical):
+    return f"""<!doctype html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="CO₂ KUALTA: Soluciones sostenibles para bonos de carbono, compensación de huella y conservación ambiental en Colombia.">
-    <title>CO₂ KUALTA | Desde la raíz, tejemos el futuro del planeta</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.css" rel="stylesheet">
-    <link rel="stylesheet" href="css/styles.css">
-    <!-- SEO Schema Markup -->
-    <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "Organization",
-      "name": "CO₂ KUALTA",
-      "url": "https://www.kualtaforest.org",
-      "logo": "images/logo.png",
-      "contactPoint": {
-        "@type": "ContactPoint",
-        "telephone": "+57-311-660-8217",
-        "contactType": "customer service",
-        "areaServed": "CO",
-        "availableLanguage": "Spanish"
-      },
-      "address": {
-        "@type": "PostalAddress",
-        "streetAddress": "Av. Simón Bolívar #21-44",
-        "addressLocality": "Valledupar",
-        "addressRegion": "Cesar",
-        "postalCode": "",
-        "addressCountry": "CO"
-      }
-    }
-    </script>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{title}</title>
+  <meta name="description" content="{desc}" />
+  <meta name="theme-color" content="#0b3d2e" />
+  <link rel="canonical" href="{canonical}" />
+
+  <meta property="og:title" content="{title}" />
+  <meta property="og:description" content="{desc}" />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="./images/og-co2kualta.jpg" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Manrope:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="./css/styles.css" />
+
+  <script type="application/ld+json">
+  {{
+    "@context":"https://schema.org",
+    "@type":"Organization",
+    "name":"CO₂ KUALTA",
+    "url":"https://example.com",
+    "logo":"images/logo-co2kualta.png",
+    "description":"Soluciones ambientales reales: bonos de carbono, huella y compensación, donación de árboles.",
+    "sameAs":[]
+  }}
+  </script>
 </head>
+"""
+
+def nav(active="home"):
+    # active keys: home, bonos, huella, donar
+    def cls(key): return "is-active" if active==key else ""
+    return f"""
 <body>
-    <!-- Hero Section -->
-    <section id="hero" class="hero d-flex align-items-center justify-content-center text-center">
-        <div class="container">
-            <h1 class="display-1 fw-bold">CO₂ KUALTA</h1>
-            <p class="lead">Desde la raíz, tejemos el futuro del planeta</p>
-            <a href="#contacto" class="btn btn-primary btn-lg">Postúlate Ahora</a>
-        </div>
-    </section>
+<a class="skip" href="#contenido">Saltar al contenido</a>
+<div class="topbar" aria-hidden="true"><div class="topbar__fill" id="scrollProgress"></div></div>
 
-    <!-- Sobre Nosotros -->
-    <section id="sobre" class="py-5" data-aos="fade-up">
-        <div class="container">
-            <h2 class="text-center mb-4">Sobre Nosotros</h2>
-            <p>CO₂ KUALTA nace como una iniciativa de SOSING S.A.S. para promover la conservación ambiental, la revalorización de territorios y la generación de ingresos sostenibles mediante la captura de carbono. Unimos ciencia, territorio y comunidad para tejer un futuro responsable desde la raíz.</p>
-            <p>Nos enfocamos en alianzas con propietarios de tierra en zonas estratégicas como la Serranía del Perijá, proyectos de conservación, reforestación y regeneración natural, certificación internacional de bonos de carbono, y acceso a mercados voluntarios de carbono a nivel global.</p>
-        </div>
-    </section>
-
-    <!-- Servicios -->
-    <section id="servicios" class="py-5 bg-light" data-aos="fade-up">
-        <div class="container">
-            <h2 class="text-center mb-4">Nuestros Servicios</h2>
-            <div class="row">
-                <div class="col-md-3 mb-4">
-                    <div class="card h-100">
-                        <img src="images/bonos-carbono.jpg" class="card-img-top" alt="Bonos de Carbono">
-                        <div class="card-body">
-                            <h5 class="card-title">Bonos de Carbono</h5>
-                            <p class="card-text">Estructuramos proyectos para predios con bosque natural, generando ingresos pasivos en dólares por 20 años o más sin vender tu tierra.</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3 mb-4">
-                    <div class="card h-100">
-                        <img src="images/huella-carbono.jpg" class="card-img-top" alt="Huella de Carbono">
-                        <div class="card-body">
-                            <h5 class="card-title">Huella de Carbono</h5>
-                            <p class="card-text">Calculamos y compensamos tu huella de carbono con soluciones medibles y transparentes para personas y empresas.</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3 mb-4">
-                    <div class="card h-100">
-                        <img src="images/compensaciones.jpg" class="card-img-top" alt="Compensaciones Ambientales">
-                        <div class="card-body">
-                            <h5 class="card-title">Compensaciones Ambientales</h5>
-                            <p class="card-text">Planes personalizados para compensar impactos ambientales mediante reforestación y conservación.</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3 mb-4">
-                    <div class="card h-100">
-                        <img src="images/donar-arbol.jpg" class="card-img-top" alt="Donar un Árbol">
-                        <div class="card-body">
-                            <h5 class="card-title">Donar un Árbol</h5>
-                            <p class="card-text">Aporte sencillo con siembra, mantenimiento y evidencia fotográfica georreferenciada.</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Por Qué Elegirnos -->
-    <section id="ventajas" class="py-5" data-aos="fade-up">
-        <div class="container">
-            <h2 class="text-center mb-4">Por Qué Elegirnos</h2>
-            <div class="row text-center">
-                <div class="col-md-3 mb-4">
-                    <img src="images/icon-mrv.png" alt="MRV" class="mb-2" width="50">
-                    <h5>MRV (Medición & Reporte)</h5>
-                    <p>Mediciones precisas y reportes transparentes.</p>
-                </div>
-                <div class="col-md-3 mb-4">
-                    <img src="images/icon-transparencia.png" alt="Transparencia" class="mb-2" width="50">
-                    <h5>Transparencia</h5>
-                    <p>Evidencia fotográfica georreferenciada.</p>
-                </div>
-                <div class="col-md-3 mb-4">
-                    <img src="images/icon-acompanamiento.png" alt="Acompañamiento" class="mb-2" width="50">
-                    <h5>Acompañamiento</h5>
-                    <p>Ruta paso a paso con soporte.</p>
-                </div>
-                <div class="col-md-3 mb-4">
-                    <img src="images/icon-impacto.png" alt="Impacto" class="mb-2" width="50">
-                    <h5>+Impacto</h5>
-                    <p>Cada aporte documentado y traceable.</p>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Testimonios -->
-    <section id="testimonios" class="py-5 bg-light" data-aos="fade-up">
-        <div class="container">
-            <h2 class="text-center mb-4">Testimonios de Clientes</h2>
-            <div class="row">
-                <div class="col-md-4 mb-4">
-                    <div class="card">
-                        <div class="card-body">
-                            <p>"Excelente iniciativa para conservar nuestro bosque y generar ingresos sostenibles. ¡Recomendado!"</p>
-                            <footer class="blockquote-footer">Juan Pérez, Propietario en Cesar</footer>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4 mb-4">
-                    <div class="card">
-                        <div class="card-body">
-                            <p>"Compensamos nuestra huella de carbono de manera fácil y transparente. Gran equipo."</p>
-                            <footer class="blockquote-footer">Empresa XYZ, Bogotá</footer>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4 mb-4">
-                    <div class="card">
-                        <div class="card-body">
-                            <p>"Donar árboles fue simple y recibí actualizaciones con fotos. Impacto real."</p>
-                            <footer class="blockquote-footer">María López, Donante Individual</footer>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4 mb-4">
-                    <div class="card">
-                        <div class="card-body">
-                            <p>"El proceso para bonos de carbono fue profesional y sin inversión inicial de mi parte."</p>
-                            <footer class="blockquote-footer">Carlos Ramírez, Propietario en Perijá</footer>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4 mb-4">
-                    <div class="card">
-                        <div class="card-body">
-                            <p>"Valorizan el predio mientras lo conservamos. Ingresos pasivos en dólares."</p>
-                            <footer class="blockquote-footer">Ana Gómez, Empresaria</footer>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4 mb-4">
-                    <div class="card">
-                        <div class="card-body">
-                            <p>"Proyecto certificado internacionalmente. Confiable y efectivo."</p>
-                            <footer class="blockquote-footer">Luis Fernández, Consultor Ambiental</footer>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Proceso de Trabajo -->
-    <section id="proceso" class="py-5" data-aos="fade-up">
-        <div class="container">
-            <h2 class="text-center mb-4">Nuestro Proceso de Trabajo</h2>
-            <div class="row text-center">
-                <div class="col-md-4 mb-4">
-                    <h5>1. Diagnóstico</h5>
-                    <p>Evaluamos elegibilidad y huella o predio.</p>
-                </div>
-                <div class="col-md-4 mb-4">
-                    <h5>2. Plan</h5>
-                    <p>Diseñamos ruta técnica, jurídica y comercial.</p>
-                </div>
-                <div class="col-md-4 mb-4">
-                    <h5>3. Ejecución</h5>
-                    <p>Implementamos con seguimiento, certificados y reportes.</p>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Portafolio -->
-    <section id="portafolio" class="py-5 bg-light" data-aos="fade-up">
-        <div class="container">
-            <h2 class="text-center mb-4">Portafolio / Galería</h2>
-            <div class="row">
-                <div class="col-md-4 mb-4">
-                    <img src="images/forest1.jpg" class="img-fluid" alt="Bosque en Serranía del Perijá">
-                </div>
-                <div class="col-md-4 mb-4">
-                    <img src="images/forest2.jpg" class="img-fluid" alt="Árbol alto en regeneración natural">
-                </div>
-                <div class="col-md-4 mb-4">
-                    <img src="images/forest3.jpg" class="img-fluid" alt="Vistas de conservación en Manaure, Cesar">
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- FAQ -->
-    <section id="faq" class="py-5" data-aos="fade-up">
-        <div class="container">
-            <h2 class="text-center mb-4">Preguntas Frecuentes</h2>
-            <div class="accordion" id="faqAccordion">
-                <div class="accordion-item">
-                    <h2 class="accordion-header" id="faq1">
-                        <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapse1">¿Qué es un bono de carbono?</button>
-                    </h2>
-                    <div id="collapse1" class="accordion-collapse collapse show" data-bs-parent="#faqAccordion">
-                        <div class="accordion-body">Un bono de carbono representa una tonelada de CO₂ equivalente capturada o reducida, certificada internacionalmente.</div>
-                    </div>
-                </div>
-                <div class="accordion-item">
-                    <h2 class="accordion-header" id="faq2">
-                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse2">¿Cómo genero ingresos con mi predio?</button>
-                    </h2>
-                    <div id="collapse2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
-                        <div class="accordion-body">A través de alianzas 50/50, sin inversión inicial, conservando tu bosque por 20+ años.</div>
-                    </div>
-                </div>
-                <div class="accordion-item">
-                    <h2 class="accordion-header" id="faq3">
-                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse3">¿Es seguro donar un árbol?</button>
-                    </h2>
-                    <div id="collapse3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
-                        <div class="accordion-body">Sí, con trazabilidad y evidencia fotográfica georreferenciada.</div>
-                    </div>
-                </div>
-                <div class="accordion-item">
-                    <h2 class="accordion-header" id="faq4">
-                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse4">¿Qué requisitos tiene un predio?</button>
-                    </h2>
-                    <div id="collapse4" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
-                        <div class="accordion-body">Mínimo 20 hectáreas de bosque natural en zonas como Serranía del Perijá.</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Contacto -->
-    <section id="contacto" class="py-5" data-aos="fade-up">
-        <div class="container">
-            <h2 class="text-center mb-4">Contacto</h2>
-            <div class="row">
-                <div class="col-md-6">
-                    <form>
-                        <div class="mb-3">
-                            <label for="name" class="form-label">Nombre</label>
-                            <input type="text" class="form-control" id="name">
-                        </div>
-                        <div class="mb-3">
-                            <label for="email" class="form-label">Email</label>
-                            <input type="email" class="form-control" id="email">
-                        </div>
-                        <div class="mb-3">
-                            <label for="message" class="form-label">Mensaje</label>
-                            <textarea class="form-control" id="message" rows="3"></textarea>
-                        </div>
-                        <button type="submit" class="btn btn-primary">Enviar</button>
-                    </form>
-                    <p class="mt-3">Email: co2kualta@sosing.com.co</p>
-                    <p>Teléfono: +57 311 660 8217</p>
-                    <p>Dirección: Av. Simón Bolívar #21-44, Valledupar, Cesar, Colombia</p>
-                </div>
-                <div class="col-md-6">
-                    <!-- Google Map Embed -->
-                    <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3919.254!2d-73.252!3d10.463!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x8e8abff1f0f0f0f1%3A0xf0f0f0f0f0f0f0f0!2sAv.%20Sim%C3%B3n%20Bol%C3%ADvar%20%2321-44%2C%20Valledupar%2C%20Cesar%2C%20Colombia!5e0!3m2!1ses!2sco!4v1700000000000" width="100%" height="300" style="border:0;" allowfullscreen="" loading="lazy"></iframe><grok-card data-id="98077d" data-type="places_card"></grok-card>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Footer -->
-    <footer class="bg-dark text-white py-4">
-        <div class="container">
-            <div class="row">
-                <div class="col-md-4">
-                    <h5>CO₂ KUALTA</h5>
-                    <p>Desde la raíz, tejemos el futuro del planeta.</p>
-                </div>
-                <div class="col-md-4">
-                    <h5>Enlaces</h5>
-                    <ul class="list-unstyled">
-                        <li><a href="#sobre" class="text-white">Sobre Nosotros</a></li>
-                        <li><a href="#servicios" class="text-white">Servicios</a></li>
-                        <li><a href="#contacto" class="text-white">Contacto</a></li>
-                    </ul>
-                </div>
-                <div class="col-md-4">
-                    <h5>Redes Sociales</h5>
-                    <a href="https://wa.me/573116608217" class="text-white">WhatsApp</a>
-                    <!-- Add more if available -->
-                </div>
-            </div>
-            <hr>
-            <div class="text-center">
-                <a href="/privacidad.html" class="text-white">Política de Privacidad</a> | <a href="/aviso-legal.html" class="text-white">Aviso Legal</a>
-                <p>&copy; 2025 CO₂ KUALTA. Todos los derechos reservados.</p>
-            </div>
-        </div>
-    </footer>
-
-    <!-- WhatsApp Floating Button -->
-    <a href="https://wa.me/573116608217?text=Hola%2C%20quiero%20informaci%C3%B3n%20sobre%20CO2%20KUALTA" class="whatsapp-float" target="_blank">
-        <img src="images/whatsapp-icon.png" alt="Chat en WhatsApp" width="50">
+<header class="nav">
+  <div class="container nav__inner">
+    <a class="brand" href="./">
+      <img src="./images/logo-co2kualta.png" alt="CO₂ KUALTA" class="brand__logo" />
+      <span class="brand__name">CO₂ KUALTA</span>
     </a>
 
-    <!-- Exit-Intent Popup -->
-    <div id="exit-popup" class="modal fade" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">¡Espera! Descarga nuestra Guía Gratis</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <p>Obtén nuestra checklist gratuita para iniciar tu proyecto de bonos de carbono.</p>
-                    <form>
-                        <div class="mb-3">
-                            <label for="popup-email" class="form-label">Email</label>
-                            <input type="email" class="form-control" id="popup-email">
-                        </div>
-                        <button type="submit" class="btn btn-primary">Descargar</button>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
+    <nav class="nav__links" aria-label="Navegación principal">
+      <a href="./#servicios" data-i18n="nav_services">Servicios</a>
+      <a href="./bonos-carbono.html" class="{cls('bonos')}">Bonos</a>
+      <a href="./huella-compensacion.html" class="{cls('huella')}">Huella</a>
+      <a href="./donar-arbol.html" class="{cls('donar')}">Donar</a>
+      <a href="./#proceso" data-i18n="nav_process">Proceso</a>
+      <a href="./#casos" data-i18n="nav_cases">Casos</a>
+      <a href="./#faq" data-i18n="nav_faq">FAQ</a>
+      <a href="./#contacto" class="btn btn--sm" data-i18n="nav_contact">Contacto</a>
+    </nav>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.js"></script>
-    <script src="js/script.js"></script>
+    <div class="nav__right">
+      <button class="lang" id="langToggle" aria-label="Cambiar idioma"><strong>ES</strong> <small>ES/EN</small></button>
+      <button class="nav__toggle" id="navToggle" aria-label="Abrir menú" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </div>
+
+  <div class="nav__mobile" id="navMobile" hidden>
+    <a href="./#servicios" data-i18n="nav_services">Servicios</a>
+    <a href="./bonos-carbono.html">Bonos</a>
+    <a href="./huella-compensacion.html">Huella</a>
+    <a href="./donar-arbol.html">Donar</a>
+    <a href="./#proceso" data-i18n="nav_process">Proceso</a>
+    <a href="./#casos" data-i18n="nav_cases">Casos</a>
+    <a href="./#faq" data-i18n="nav_faq">FAQ</a>
+    <a href="./#contacto" class="btn btn--sm btn--block" data-i18n="nav_contact">Contacto</a>
+  </div>
+</header>
+"""
+
+index_body = f"""{html_head(
+"CO₂ KUALTA | Soluciones reales para el planeta",
+"Bonos de carbono para predios, huella y compensación empresarial, y donación de árboles con impacto verificable.",
+"./"
+)}
+{nav("home")}
+<main id="contenido">
+  <section class="hero">
+    <div class="container hero__grid">
+      <div class="hero__copy reveal">
+        <div class="badge"><span class="dot"></span><span data-i18n="hero_badge">Carbono con trazabilidad · 2025–2026</span></div>
+        <h1 data-i18n="hero_h1">Desde la raíz, estructuramos soluciones reales para el planeta.</h1>
+        <p class="lead" data-i18n="hero_p">Bonos de carbono para predios, huella y compensación de carbono para empresas, y donación de árboles con impacto verificable.</p>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:8px">
+          <a class="btn" href="#contacto" data-i18n="cta_quote">Evaluar mi caso</a>
+          <a class="btn btn--ghost" href="#servicios" data-i18n="cta_services">Ver servicios</a>
+        </div>
+        <div class="hero__kpis">
+          <div class="kpi reveal">
+            <div class="kpi__t">MRV</div>
+            <div class="kpi__d">Medición · Reporte · Verificación</div>
+          </div>
+          <div class="kpi reveal">
+            <div class="kpi__t">Trazabilidad</div>
+            <div class="kpi__d">Evidencia y seguimiento</div>
+          </div>
+          <div class="kpi reveal">
+            <div class="kpi__t">Acompañamiento</div>
+            <div class="kpi__d">Ruta paso a paso</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hero__visual reveal">
+        <div class="glass">
+          <div class="glass__bg" aria-hidden="true"></div>
+          <div class="hero__overlay" aria-hidden="true"></div>
+          <img src="./images/hero-bosque.jpg" alt="Bosque y conservación" class="hero__img" loading="eager" />
+        </div>
+        <div class="metric metric--a">
+          <div class="metric__num">3</div>
+          <div class="metric__txt">Rutas de servicio</div>
+        </div>
+        <div class="metric metric--b">
+          <div class="metric__num">Claro</div>
+          <div class="metric__txt">Sin promesas irreales</div>
+        </div>
+      </div>
+    </div>
+    <div class="hero__fade" aria-hidden="true"></div>
+  </section>
+
+  <!-- About -->
+  <section class="section section--alt" id="sobre">
+    <div class="container grid2">
+      <div class="reveal">
+        <h2 data-i18n="about_h2">Más que carbono: territorio, datos y compromiso.</h2>
+        <p class="muted" data-i18n="about_p">CO₂ KUALTA conecta territorio, respaldo técnico y estrategia. Diseñamos rutas claras, medibles y verificables — sin promesas irreales.</p>
+        <div class="split">
+          <div class="panel reveal">
+            <h3>Visión</h3>
+            <p class="muted">Impulsar proyectos climáticos con credibilidad, evidencia y beneficios sostenibles para comunidades y propietarios.</p>
+          </div>
+          <div class="panel reveal">
+            <h3>Enfoque</h3>
+            <p class="muted">Diagnóstico → ruta técnica y jurídica → ejecución → seguimiento y comunicación de impacto.</p>
+          </div>
+        </div>
+      </div>
+      <div class="panel reveal">
+        <h3>Lead magnet</h3>
+        <p class="muted">Descarga gratis el checklist para saber si tu predio podría aplicar a bonos de carbono.</p>
+        <button class="btn btn--sm" data-download-lead>Descargar checklist</button>
+        <p class="muted" style="margin-top:10px;font-size:13px">PDF incluido en el sitio. Puedes reemplazarlo por tu versión final.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Services -->
+  <section class="section" id="servicios">
+    <div class="container">
+      <div class="section__head">
+        <div>
+          <h2 data-i18n="services_h2">Servicios</h2>
+          <p class="muted" data-i18n="services_p">Tres rutas, un mismo estándar: claridad, trazabilidad y acompañamiento.</p>
+        </div>
+        <a class="btn btn--sm btn--ghost" href="#contacto">Cotizar</a>
+      </div>
+
+      <div class="cards">
+        <article class="card card--highlight reveal">
+          <div class="card__icon">🏞️</div>
+          <h3>Bonos de carbono (Predios)</h3>
+          <p class="muted">Servicio estrella para propietarios: elegibilidad, ruta técnica/jurídica y plan de escalamiento.</p>
+          <ul class="list">
+            <li>Diagnóstico y pre-evaluación</li>
+            <li>Ruta MRV + acuerdos</li>
+            <li>Estrategia para crecer (ha)</li>
+          </ul>
+          <a class="btn btn--sm" href="./bonos-carbono.html">Ver detalles</a>
+        </article>
+
+        <article class="card reveal">
+          <div class="card__icon">🏢</div>
+          <h3>Huella & Compensación (Empresas)</h3>
+          <p class="muted">Medimos, reducimos y compensamos emisiones con soportes para comunicación y reportes.</p>
+          <ul class="list">
+            <li>Diagnóstico y alcance</li>
+            <li>Plan de compensación</li>
+            <li>Soportes y evidencias</li>
+          </ul>
+          <a class="btn btn--sm btn--ghost" href="./huella-compensacion.html">Ver detalles</a>
+        </article>
+
+        <article class="card reveal">
+          <div class="card__icon">🌱</div>
+          <h3>Donar un árbol</h3>
+          <p class="muted">Aporte de menudeo para personas y empresas: siembra, mantenimiento y evidencia.</p>
+          <ul class="list">
+            <li>Registro y trazabilidad</li>
+            <li>Evidencia fotográfica</li>
+            <li>Actualización por WhatsApp</li>
+          </ul>
+          <a class="btn btn--sm btn--ghost" href="./donar-arbol.html">Ver detalles</a>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- Why us -->
+  <section class="section section--alt" id="diferenciadores">
+    <div class="container">
+      <div class="section__head">
+        <div>
+          <h2 data-i18n="why_h2">¿Por qué elegir CO₂ KUALTA?</h2>
+          <p class="muted">Diferenciadores reales para proyectos que deben sostenerse en el tiempo.</p>
+        </div>
+      </div>
+
+      <div class="iconrow">
+        <div class="iconbox reveal">
+          <div class="iconbox__t">🌍 Territorio</div>
+          <div class="iconbox__d">Trabajo en campo y enfoque local/regional.</div>
+        </div>
+        <div class="iconbox reveal">
+          <div class="iconbox__t">📊 Evidencia</div>
+          <div class="iconbox__d">Trazabilidad, entregables y seguimiento.</div>
+        </div>
+        <div class="iconbox reveal">
+          <div class="iconbox__t">🧭 Ruta clara</div>
+          <div class="iconbox__d">Pasos, roles y responsabilidades definidos.</div>
+        </div>
+        <div class="iconbox reveal">
+          <div class="iconbox__t">🤝 Acompañamiento</div>
+          <div class="iconbox__d">Soporte en decisiones y ejecución.</div>
+        </div>
+        <div class="iconbox reveal">
+          <div class="iconbox__t">⚖️ Transparencia</div>
+          <div class="iconbox__d">Sin promesas irreales ni letra pequeña.</div>
+        </div>
+        <div class="iconbox reveal">
+          <div class="iconbox__t">📣 Comunicación</div>
+          <div class="iconbox__d">Narrativa de impacto para empresas y aliados.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Testimonials -->
+  <section class="section" id="testimonios">
+    <div class="container">
+      <div class="section__head">
+        <div>
+          <h2 data-i18n="testi_h2">Testimonios</h2>
+          <p class="muted">Espacios listos para reemplazar por testimonios reales (4–6).</p>
+        </div>
+        <a class="btn btn--sm btn--ghost" href="#" data-open-popup>Descargar checklist</a>
+      </div>
+
+      <div class="testis">
+        <div class="quote reveal">
+          <div class="quote__t">“Un enfoque serio y transparente.”</div>
+          <div class="quote__p muted">Nos mostraron qué sí y qué no era viable, con claridad desde el inicio.</div>
+          <div class="quote__s">— Empresa (Cesar)</div>
+        </div>
+        <div class="quote reveal">
+          <div class="quote__t">“Ordenaron el proceso completo.”</div>
+          <div class="quote__p muted">Con el checklist y la ruta técnica fue fácil reunir la información del predio.</div>
+          <div class="quote__s">— Propietario rural</div>
+        </div>
+        <div class="quote reveal">
+          <div class="quote__t">“Se nota el trabajo en territorio.”</div>
+          <div class="quote__p muted">La evidencia y los entregables nos dieron confianza para avanzar.</div>
+          <div class="quote__s">— Aliado local</div>
+        </div>
+        <div class="quote reveal">
+          <div class="quote__t">“Acompañamiento real.”</div>
+          <div class="quote__p muted">No quedamos solos: siempre hubo guía y seguimiento.</div>
+          <div class="quote__s">— Cliente</div>
+        </div>
+        <div class="quote reveal">
+          <div class="quote__t">“Comunicación clara.”</div>
+          <div class="quote__p muted">Nos ayudaron a explicar el impacto de forma comprensible y seria.</div>
+          <div class="quote__s">— Gerencia</div>
+        </div>
+        <div class="quote reveal">
+          <div class="quote__t">“Mejor de lo esperado.”</div>
+          <div class="quote__p muted">El proceso fue más rápido porque todo estaba estructurado.</div>
+          <div class="quote__s">— Propietario</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Process -->
+  <section class="section section--alt" id="proceso">
+    <div class="container grid2">
+      <div class="reveal">
+        <h2 data-i18n="process_h2">Proceso de trabajo</h2>
+        <p class="muted">Un flujo simple para avanzar sin fricción: diagnóstico → ruta → ejecución → seguimiento.</p>
+
+        <div class="steps">
+          <div class="step reveal">
+            <div class="step__n">1</div>
+            <div>
+              <div class="step__t">Diagnóstico</div>
+              <div class="step__d">Reunimos datos mínimos, fotos y contexto para una pre-evaluación.</div>
+            </div>
+          </div>
+          <div class="step reveal">
+            <div class="step__n">2</div>
+            <div>
+              <div class="step__t">Evaluación técnica</div>
+              <div class="step__d">Definimos elegibilidad, riesgos y ruta (MRV / compensación / donación).</div>
+            </div>
+          </div>
+          <div class="step reveal">
+            <div class="step__n">3</div>
+            <div>
+              <div class="step__t">Implementación</div>
+              <div class="step__d">Ejecutamos el plan acordado y documentamos evidencias.</div>
+            </div>
+          </div>
+          <div class="step reveal">
+            <div class="step__n">4</div>
+            <div>
+              <div class="step__t">Seguimiento</div>
+              <div class="step__d">Actualizaciones, soportes y mejora continua.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel reveal">
+        <h3>Acción rápida</h3>
+        <p class="muted">Si ya tienes predio, empieza con el checklist y envía los datos por WhatsApp.</p>
+        <button class="btn btn--sm btn--block" data-download-lead>Descargar checklist</button>
+        <a class="btn btn--sm btn--ghost btn--block" href="#contacto" style="margin-top:10px">Abrir formulario</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Cases / Gallery -->
+  <section class="section" id="casos">
+    <div class="container">
+      <div class="section__head">
+        <div>
+          <h2 data-i18n="cases_h2">Casos y galería</h2>
+          <p class="muted">Usando tus imágenes reales + placeholders listos para reemplazo.</p>
+        </div>
+      </div>
+
+      <div class="gallery">
+        <figure class="shot reveal">
+          <img src="./images/arbol-persona.jpg" alt="Reforestación y comunidad" loading="lazy" />
+          <figcaption>Donación y restauración (evidencia de impacto)</figcaption>
+        </figure>
+        <div class="split">
+          <figure class="shot reveal">
+            <img src="./images/galeria-1.jpg" alt="Trabajo de campo y diagnóstico" loading="lazy" />
+            <figcaption>Diagnóstico en campo</figcaption>
+          </figure>
+          <figure class="shot reveal">
+            <img src="./images/arbol-ceiba.jpg" alt="Árbol ceiba, conservación y biodiversidad" loading="lazy" />
+            <figcaption>Conservación y biodiversidad</figcaption>
+          </figure>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section class="section section--alt" id="faq">
+    <div class="container">
+      <div class="section__head">
+        <div>
+          <h2 data-i18n="faq_h2">Preguntas frecuentes</h2>
+          <p class="muted">Respuestas claras, sin letra pequeña.</p>
+        </div>
+      </div>
+
+      <div class="faq">
+        <details class="reveal">
+          <summary>¿Mi predio puede aplicar a bonos de carbono?</summary>
+          <p>Depende de cobertura, historia de uso, riesgos y criterios del estándar. Con el checklist hacemos una pre-evaluación rápida.</p>
+        </details>
+        <details class="reveal">
+          <summary>¿Qué entregan a las empresas para compensación?</summary>
+          <p>Un paquete de soportes: alcance, plan de compensación, evidencias y guía para comunicar el impacto (según modalidad).</p>
+        </details>
+        <details class="reveal">
+          <summary>¿Cómo funciona “Donar un árbol”?</summary>
+          <p>Se asigna el aporte a un proyecto real, se registra y se comparte evidencia/fotos de avance. Puedes donar como persona o empresa.</p>
+        </details>
+        <details class="reveal">
+          <summary>¿Cuánto se demora un proyecto de bonos?</summary>
+          <p>Varía por tipo y requisitos. Lo importante es iniciar con diagnóstico y ruta MRV consistente.</p>
+        </details>
+        <details class="reveal">
+          <summary>¿Cómo se paga?</summary>
+          <p>Dejamos botones listos para Wompi y PayPal. Sustituye los enlaces por los tuyos reales en <code>js/main.js</code>.</p>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <!-- Contact -->
+  <section class="section" id="contacto">
+    <div class="container grid2">
+      <div class="reveal">
+        <h2 data-i18n="contact_h2">Hablemos</h2>
+        <p class="muted" data-i18n="contact_p">Cuéntanos tu necesidad y te respondemos por WhatsApp con una ruta clara.</p>
+        <div class="panel" style="margin-top:12px">
+          <p class="muted" style="margin:0"><strong>WhatsApp (SOSING):</strong> +57 311 660 8217</p>
+          <p class="muted" style="margin:6px 0 0"><strong>Email:</strong> contacto@sosing.com.co (editable)</p>
+          <p class="muted" style="margin:6px 0 0"><strong>Ubicación:</strong> Valledupar, Cesar (editable)</p>
+        </div>
+
+        <div class="map" style="margin-top:12px">
+          <iframe
+            loading="lazy"
+            referrerpolicy="no-referrer-when-downgrade"
+            src="https://www.google.com/maps?q=Valledupar%2C%20Cesar%2C%20Colombia&output=embed"
+            title="Mapa CO₂ KUALTA / SOSING">
+          </iframe>
+        </div>
+      </div>
+
+      <form class="form reveal" id="leadForm">
+        <div class="row">
+          <label>Nombre / Name
+            <input type="text" name="nombre" placeholder="Tu nombre" required />
+          </label>
+          <label>Servicio / Service
+            <select name="servicio" required>
+              <option value="" selected disabled>Selecciona…</option>
+              <option>Bonos de carbono (Predios)</option>
+              <option>Huella & Compensación (Empresas)</option>
+              <option>Donar un árbol</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="row">
+          <label>Ciudad / City
+            <input type="text" name="ciudad" placeholder="Ej: Valledupar / Manaure" required />
+          </label>
+          <label>WhatsApp
+            <input type="tel" name="telefono" placeholder="Ej: 3XXXXXXXXX" required />
+          </label>
+        </div>
+
+        <label>Mensaje / Message (opcional)
+          <textarea name="mensaje" rows="4" placeholder="Cuéntanos en 2–3 líneas qué necesitas…"></textarea>
+        </label>
+
+        <div class="row row--end">
+          <button type="submit" class="btn">Enviar por WhatsApp</button>
+          <button type="button" class="btn btn--ghost" data-download-lead>Checklist gratis</button>
+        </div>
+
+        <p class="muted" style="margin-top:10px;font-size:13px">
+          Al enviar, se abrirá WhatsApp con tu mensaje listo. Ajusta el número en <code>js/main.js</code>.
+        </p>
+
+        <div class="panel" style="margin-top:12px">
+          <h3>Pagos (botones listos)</h3>
+          <p class="muted">Conecta tus enlaces reales en <code>js/main.js</code>.</p>
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <a class="btn btn--sm" data-wompi href="https://checkout.wompi.co/" target="_blank" rel="noopener">Pagar con Wompi</a>
+            <a class="btn btn--sm btn--ghost" data-paypal href="https://www.paypal.com/paypalme/" target="_blank" rel="noopener">Pagar con PayPal</a>
+          </div>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container footer__grid">
+      <div>
+        <div class="footer__brand">
+          <img src="./images/logo-co2kualta.png" alt="CO₂ KUALTA" />
+          <div>
+            <strong>CO₂ KUALTA</strong>
+            <div class="muted">Desde la raíz, tejemos el futuro del planeta</div>
+          </div>
+        </div>
+        <p class="footer__small">© <span id="year"></span> CO₂ KUALTA. Todos los derechos reservados.</p>
+      </div>
+
+      <div>
+        <strong>Servicios</strong>
+        <div style="display:grid;gap:8px;margin-top:10px">
+          <a href="./bonos-carbono.html">Bonos de carbono</a>
+          <a href="./huella-compensacion.html">Huella & compensación</a>
+          <a href="./donar-arbol.html">Donar un árbol</a>
+        </div>
+      </div>
+
+      <div>
+        <strong>Legal</strong>
+        <div style="display:grid;gap:8px;margin-top:10px">
+          <a href="./privacy.html" data-i18n="footer_priv">Política de privacidad</a>
+          <a href="./legal.html" data-i18n="footer_legal">Aviso legal</a>
+          <a href="#" data-open-popup>Checklist gratuito</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+</main>
+
+<!-- WhatsApp floating button -->
+<a class="wa" id="waFloat" href="#" aria-label="Hablar por WhatsApp"><span class="wa__dot"></span>WhatsApp</a>
+
+<!-- Exit intent popup -->
+<div class="modal" id="exitModal" aria-hidden="true" role="dialog" aria-label="Checklist gratis">
+  <div class="modal__backdrop" data-close="true"></div>
+  <div class="modal__panel" role="document">
+    <button class="modal__close" data-close="true" aria-label="Cerrar">✕</button>
+    <div class="modal__badge">Gratis</div>
+    <h3>Checklist: ¿Tu predio puede generar bonos de carbono?</h3>
+    <p class="muted">Descárgalo y te guiamos por WhatsApp con el siguiente paso.</p>
+    <div class="modal__actions">
+      <button class="btn" data-download-lead>Descargar ahora</button>
+      <button class="btn btn--ghost" data-close="true">Ahora no</button>
+    </div>
+    <p class="muted" style="margin-top:10px;font-size:13px">Archivo incluido en <code>/assets</code>.</p>
+  </div>
+</div>
+
+<script>
+  window.__I18N__ = {i18n_dict};
+</script>
+<script src="./js/main.js"></script>
 </body>
 </html>
+"""
+
+def service_page(slug, title_es, title_en, desc_es, desc_en, hero_img, key_prefix, bullets_es, bullets_en):
+    # minimal page with same footer and popup
+    head = html_head(f"{title_es} | CO₂ KUALTA", desc_es, f"./{slug}")
+    body = nav({"bonos-carbono.html":"bonos","huella-compensacion.html":"huella","donar-arbol.html":"donar"}.get(slug,"home"))
+    bullets_html = "".join([f"<li>{b}</li>" for b in bullets_es])
+    bullets_html_en = "".join([f"<li>{b}</li>" for b in bullets_en])
+    # i18n keys for page
+    local_dict = dict(i18n_dict)
+    local_dict[f"{key_prefix}_h1"]={"es":title_es,"en":title_en}
+    local_dict[f"{key_prefix}_p"]={"es":desc_es,"en":desc_en}
+    local_dict[f"{key_prefix}_what"]={"es":"¿Qué incluye?","en":"What’s included?"}
+    local_dict[f"{key_prefix}_cta"]={"es":"Quiero una evaluación","en":"I want an evaluation"}
+    local_dict[f"{key_prefix}_bullets"]={"es":f"<ul class='list'>{bullets_html}</ul>","en":f"<ul class='list'>{bullets_html_en}</ul>"}
+    return f"""{head}{body}
+<main id="contenido">
+  <section class="hero">
+    <div class="container hero__grid">
+      <div class="hero__copy reveal">
+        <div class="badge"><span class="dot"></span><span>CO₂ KUALTA</span></div>
+        <h1 data-i18n="{key_prefix}_h1">{title_es}</h1>
+        <p class="lead" data-i18n="{key_prefix}_p">{desc_es}</p>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:8px">
+          <a class="btn" href="./#contacto" data-i18n="{key_prefix}_cta">Quiero una evaluación</a>
+          <a class="btn btn--ghost" href="./" data-i18n="cta_services">Inicio</a>
+        </div>
+      </div>
+
+      <div class="hero__visual reveal">
+        <div class="glass">
+          <div class="glass__bg" aria-hidden="true"></div>
+          <div class="hero__overlay" aria-hidden="true"></div>
+          <img src="./images/{hero_img}" alt="{title_es}" class="hero__img" loading="eager" />
+        </div>
+        <div class="metric metric--a">
+          <div class="metric__num">Ruta</div>
+          <div class="metric__txt">Diagnóstico → Plan → Seguimiento</div>
+        </div>
+        <div class="metric metric--b">
+          <div class="metric__num">Soporte</div>
+          <div class="metric__txt">Evidencia y trazabilidad</div>
+        </div>
+      </div>
+    </div>
+    <div class="hero__fade" aria-hidden="true"></div>
+  </section>
+
+  <section class="section section--alt">
+    <div class="container grid2">
+      <div class="reveal">
+        <h2 data-i18n="{key_prefix}_what">¿Qué incluye?</h2>
+        <div data-i18n-html="{key_prefix}_bullets"></div>
+        <div class="panel reveal" style="margin-top:12px">
+          <h3>Checklist / Lead magnet</h3>
+          <p class="muted">Descarga el checklist y avanza más rápido.</p>
+          <button class="btn btn--sm" data-download-lead>Descargar</button>
+        </div>
+      </div>
+
+      <aside class="panel reveal">
+        <h3>Acción rápida</h3>
+        <p class="muted">Envíanos tu caso por WhatsApp o usa el formulario del inicio.</p>
+        <a class="btn btn--sm btn--block" href="./#contacto">Abrir formulario</a>
+        <a class="btn btn--sm btn--ghost btn--block" href="#" id="waQuick" style="margin-top:10px">Hablar por WhatsApp</a>
+
+        <div class="panel" style="margin-top:12px">
+          <h3>Pagos</h3>
+          <p class="muted">Botones listos (reemplaza enlaces en <code>js/main.js</code>).</p>
+          <div style="display:grid;gap:10px">
+            <a class="btn btn--sm" data-wompi href="https://checkout.wompi.co/" target="_blank" rel="noopener">Wompi</a>
+            <a class="btn btn--sm btn--ghost" data-paypal href="https://www.paypal.com/paypalme/" target="_blank" rel="noopener">PayPal</a>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="container footer__grid">
+      <div>
+        <div class="footer__brand">
+          <img src="./images/logo-co2kualta.png" alt="CO₂ KUALTA" />
+          <div>
+            <strong>CO₂ KUALTA</strong>
+            <div class="muted">Desde la raíz, tejemos el futuro del planeta</div>
+          </div>
+        </div>
+        <p class="footer__small">© <span id="year"></span> CO₂ KUALTA.</p>
+      </div>
+
+      <div>
+        <strong>Servicios</strong>
+        <div style="display:grid;gap:8px;margin-top:10px">
+          <a href="./bonos-carbono.html">Bonos de carbono</a>
+          <a href="./huella-compensacion.html">Huella & compensación</a>
+          <a href="./donar-arbol.html">Donar un árbol</a>
+        </div>
+      </div>
+
+      <div>
+        <strong>Legal</strong>
+        <div style="display:grid;gap:8px;margin-top:10px">
+          <a href="./privacy.html" data-i18n="footer_priv">Política de privacidad</a>
+          <a href="./legal.html" data-i18n="footer_legal">Aviso legal</a>
+          <a href="#" data-open-popup>Checklist gratuito</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+</main>
+
+<a class="wa" id="waFloat" href="#" aria-label="Hablar por WhatsApp"><span class="wa__dot"></span>WhatsApp</a>
+
+<div class="modal" id="exitModal" aria-hidden="true" role="dialog" aria-label="Checklist gratis">
+  <div class="modal__backdrop" data-close="true"></div>
+  <div class="modal__panel" role="document">
+    <button class="modal__close" data-close="true" aria-label="Cerrar">✕</button>
+    <div class="modal__badge">Gratis</div>
+    <h3>Checklist: ¿Tu predio puede generar bonos de carbono?</h3>
+    <p class="muted">Descárgalo y te guiamos por WhatsApp con el siguiente paso.</p>
+    <div class="modal__actions">
+      <button class="btn" data-download-lead>Descargar ahora</button>
+      <button class="btn btn--ghost" data-close="true">Ahora no</button>
+    </div>
+    <p class="muted" style="margin-top:10px;font-size:13px">Archivo incluido en <code>/assets</code>.</p>
+  </div>
+</div>
+
+<script>
+  window.__I18N__ = {local_dict};
+</script>
+<script src="./js/main.js"></script>
+<script>
+  // Quick WhatsApp button for service pages
+  (function(){{
+    const btn = document.getElementById('waQuick');
+    if(!btn) return;
+    btn.addEventListener('click', function(e){{
+      e.preventDefault();
+      const url = 'https://wa.me/573116608217?text=' + encodeURIComponent('Hola CO₂ KUALTA (SOSING), quiero información sobre: {title_es}.');
+      window.open(url,'_blank','noopener');
+    }});
+  }})();
+</script>
+</body>
+</html>
+"""
+
+bonos_page = service_page(
+    "bonos-carbono.html",
+    "Bonos de carbono para predios y propietarios",
+    "Carbon credits for landowners",
+    "Estructuramos tu proyecto con orden: elegibilidad, ruta técnica/jurídica y plan de escalamiento para entrar al mercado de carbono cuando aplique.",
+    "We structure your project with clarity: eligibility, technical/legal route, and a scaling plan to enter the carbon market when applicable.",
+    "hero-bosque.jpg",
+    "bonos",
+    ["Pre-evaluación con checklist + datos mínimos","Diagnóstico de elegibilidad y riesgos","Ruta MRV (monitoreo, reporte, verificación)","Acuerdos y roles (propiedad/operación)","Plan de escalamiento (hectáreas/portafolio)"],
+    ["Pre-evaluation with checklist + minimum data","Eligibility & risk diagnosis","MRV route (monitoring, reporting, verification)","Agreements & roles (ownership/operation)","Scaling plan (hectares/portfolio)"]
+)
+
+huella_page = service_page(
+    "huella-compensacion.html",
+    "Huella de carbono y compensación para empresas",
+    "Corporate footprint & compensation",
+    "Medimos, reducimos y compensamos emisiones con soportes para reportes y comunicación, según alcance y necesidad de tu operación.",
+    "We measure, reduce and compensate emissions with support for reporting and communication, tailored to your operation’s scope.",
+    "galeria-1.jpg",
+    "huella",
+    ["Definición de alcance (actividad/operación)","Levantamiento de datos y cálculo base","Plan de reducción y compensación","Soportes y evidencias para comunicación","Acompañamiento en seguimiento"],
+    ["Scope definition (activity/operations)","Data collection & baseline calculation","Reduction & compensation plan","Evidence package for communication","Ongoing guidance and follow-up"]
+)
+
+donar_page = service_page(
+    "donar-arbol.html",
+    "Donar un árbol con impacto real",
+    "Donate a tree with real impact",
+    "Un aporte sencillo, con propósito: asignación a proyecto real, siembra/mantenimiento y evidencia para personas y empresas.",
+    "A simple contribution with purpose: allocation to a real project, planting/maintenance, and evidence for individuals and companies.",
+    "arbol-persona.jpg",
+    "donar",
+    ["Donación (menudeo) para persona o empresa","Registro y trazabilidad del aporte","Evidencia fotográfica periódica","Opciones para fechas especiales","Soporte por WhatsApp"],
+    ["Donation for individuals or companies","Contribution registration & traceability","Periodic photo evidence","Special-date options","WhatsApp support"]
+)
+
+privacy = f"""{html_head("Política de privacidad | CO₂ KUALTA",
+"Política de privacidad de CO₂ KUALTA.",
+"./privacy.html")}
+{nav("home")}
+<main id="contenido" class="section">
+  <div class="container">
+    <h1 style="font-size:clamp(30px,3.6vw,44px);font-family:Manrope">Política de privacidad</h1>
+    <p class="muted">Este texto es un modelo base. Ajusta según tus canales de captura (web/WhatsApp/pasarelas de pago).</p>
+    <div class="panel">
+      <h3>1. Datos que recopilamos</h3>
+      <p class="muted">Nombre, ciudad, teléfono, y la información que voluntariamente envíes a través del formulario o WhatsApp.</p>
+      <h3>2. Finalidad</h3>
+      <p class="muted">Contactarte, responder solicitudes, elaborar cotizaciones y prestar servicios.</p>
+      <h3>3. Conservación</h3>
+      <p class="muted">Conservamos la información el tiempo necesario para la finalidad o por obligaciones legales.</p>
+      <h3>4. Derechos</h3>
+      <p class="muted">Puedes solicitar actualización o eliminación escribiendo al correo indicado en el sitio.</p>
+    </div>
+  </div>
+</main>
+<footer class="footer">
+  <div class="container footer__grid">
+    <div><div class="footer__brand"><img src="./images/logo-co2kualta.png" alt="CO₂ KUALTA"><div><strong>CO₂ KUALTA</strong><div class="muted">Desde la raíz, tejemos el futuro del planeta</div></div></div>
+    <p class="footer__small">© <span id="year"></span> CO₂ KUALTA.</p></div>
+    <div><strong>Legal</strong><div style="display:grid;gap:8px;margin-top:10px">
+      <a href="./privacy.html">Política de privacidad</a><a href="./legal.html">Aviso legal</a><a href="./">Inicio</a>
+    </div></div>
+  </div>
+</footer>
+<script>window.__I18N__ = {i18n_dict};</script>
+<script src="./js/main.js"></script>
+</body></html>
+"""
+
+legal = f"""{html_head("Aviso legal | CO₂ KUALTA",
+"Aviso legal y condiciones generales de CO₂ KUALTA.",
+"./legal.html")}
+{nav("home")}
+<main id="contenido" class="section">
+  <div class="container">
+    <h1 style="font-size:clamp(30px,3.6vw,44px);font-family:Manrope">Aviso legal</h1>
+    <p class="muted">Modelo base. Ajusta datos de razón social, NIT, domicilio y condiciones comerciales.</p>
+    <div class="panel">
+      <h3>1. Titular del sitio</h3>
+      <p class="muted">CO₂ KUALTA (unidad operativa / marca) — Operado por SOSING S.A.S. (ajustable).</p>
+      <h3>2. Responsabilidad</h3>
+      <p class="muted">La información es de carácter general y puede actualizarse. Los servicios se prestan bajo alcance definido por cotización/contrato.</p>
+      <h3>3. Propiedad intelectual</h3>
+      <p class="muted">El contenido del sitio (marca, textos, imágenes propias) está protegido. No usar sin autorización.</p>
+      <h3>4. Enlaces externos</h3>
+      <p class="muted">Los enlaces a pasarelas de pago o terceros se rigen por sus propias condiciones.</p>
+    </div>
+  </div>
+</main>
+<footer class="footer">
+  <div class="container footer__grid">
+    <div><div class="footer__brand"><img src="./images/logo-co2kualta.png" alt="CO₂ KUALTA"><div><strong>CO₂ KUALTA</strong><div class="muted">Desde la raíz, tejemos el futuro del planeta</div></div></div>
+    <p class="footer__small">© <span id="year"></span> CO₂ KUALTA.</p></div>
+    <div><strong>Legal</strong><div style="display:grid;gap:8px;margin-top:10px">
+      <a href="./privacy.html">Política de privacidad</a><a href="./legal.html">Aviso legal</a><a href="./">Inicio</a>
+    </div></div>
+  </div>
+</footer>
+<script>window.__I18N__ = {i18n_dict};</script>
+<script src="./js/main.js"></script>
+</body></html>
+"""
+
+# Write files
+open(os.path.join(base,"css","styles.css"),"w",encoding="utf-8").write(styles)
+open(os.path.join(base,"js","main.js"),"w",encoding="utf-8").write(main_js)
+open(os.path.join(base,"index.html"),"w",encoding="utf-8").write(index_body)
+open(os.path.join(base,"bonos-carbono.html"),"w",encoding="utf-8").write(bonos_page)
+open(os.path.join(base,"huella-compensacion.html"),"w",encoding="utf-8").write(huella_page)
+open(os.path.join(base,"donar-arbol.html"),"w",encoding="utf-8").write(donar_page)
+open(os.path.join(base,"privacy.html"),"w",encoding="utf-8").write(privacy)
+open(os.path.join(base,"legal.html"),"w",encoding="utf-8").write(legal)
+
+readme = """CO₂ KUALTA — Sitio Premium (Static) listo para Netlify / Vercel
+
+1) Estructura
+- index.html (Home)
+- bonos-carbono.html
+- huella-compensacion.html
+- donar-arbol.html
+- privacy.html
+- legal.html
+- /css/styles.css
+- /js/main.js
+- /images (imágenes)
+- /assets/checklist-carbono.pdf (lead magnet)
+
+2) Cambios rápidos (recomendado)
+- WhatsApp:
+  Edita js/main.js → CONFIG.whatsappNumber (por ahora: 573116608217 - SOSING)
+
+- Pasarelas:
+  js/main.js → CONFIG.wompiLink y CONFIG.paypalLink (reemplaza por tus enlaces reales)
+
+- Mapa:
+  En index.html, sección Contacto: reemplaza el iframe por tu ubicación exacta (Google Maps embed).
+
+3) Deploy en Netlify (1 clic)
+- Entra a Netlify → Add new site → Deploy manually
+- Arrastra el ZIP o la carpeta
+- Listo (publica inmediatamente)
+
+4) Deploy en Vercel (1 clic)
+- Vercel → New Project → “Deploy” (import / upload)
+- Framework: Other (Static)
+- Output: Static
+- Listo
+
+Notas de rendimiento:
+- No se usan librerías pesadas.
+- Animaciones por IntersectionObserver.
+- Imágenes locales; si reemplazas, comprímelas (JPG/WebP) para mantener PageSpeed alto.
+"""
+open(os.path.join(base,"README_DEPLOY.txt"),"w",encoding="utf-8").write(readme)
+
+# Create zip
+zip_path = "/mnt/data/CO2-KUALTA-premium-site.zip"
+if os.path.exists(zip_path):
+    os.remove(zip_path)
+with zipfile.ZipFile(zip_path,"w",zipfile.ZIP_DEFLATED) as z:
+    for root, dirs, files in os.walk(base):
+        for fn in files:
+            full = os.path.join(root, fn)
+            rel = os.path.relpath(full, base)
+            z.write(full, rel)
+
+zip_path
+
